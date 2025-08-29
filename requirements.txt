@@ -1,0 +1,28 @@
+# 核心依赖
+asyncio
+
+# 腾讯云官方SDK（推荐）
+tencentcloud-sdk-python>=3.0.0
+
+# 音频处理
+pyaudio>=0.2.11
+wave
+
+# 键盘监听
+keyboard>=0.13.5
+
+# 剪贴板操作
+pyperclip>=1.8.2
+
+# 系统工具
+pathlib
+
+# 可选：更好的控制台输出
+rich>=10.0.0
+
+# 系统托盘图标
+pystray>=0.19.0
+Pillow>=8.0.0
+
+# 环境变量支持
+python-dotenv>=1.0.0

@@ -1,0 +1,145 @@
+import wave
+import pyaudio
+import threading
+import time
+import os
+from pathlib import Path
+from util.cosmic import cosmic
+
+
+class AudioRecorder:
+    """音频录制器"""
+
+    def __init__(self):
+        self.audio = pyaudio.PyAudio()
+        self.stream = None
+        self.frames = []
+        self.is_recording = False
+        self.thread = None
+
+        # 音频参数
+        self.format = pyaudio.paInt16
+        self.channels = 1
+        self.rate = 16000  # 16kHz采样率，适合语音识别
+        self.chunk = 1024
+
+    def find_input_device(self):
+        """查找可用的输入设备"""
+        for i in range(self.audio.get_device_count()):
+            device_info = self.audio.get_device_info_by_index(i)
+            if device_info.get('maxInputChannels') > 0:
+                print(f"找到输入设备: {device_info.get('name')}")
+                return i
+        return None
+
+    def start_recording(self):
+        """开始录音"""
+        if self.is_recording:
+            return
+
+        device_index = self.find_input_device()
+        if device_index is None:
+            raise Exception("未找到音频输入设备")
+
+        self.frames = []
+        self.is_recording = True
+
+        try:
+            self.stream = self.audio.open(
+                format=self.format,
+                channels=self.channels,
+                rate=self.rate,
+                input=True,
+                input_device_index=device_index,
+                frames_per_buffer=self.chunk
+            )
+
+            self.thread = threading.Thread(target=self._record_loop)
+            self.thread.start()
+            print(f"音频录制已启动 (设备: {device_index}, 采样率: {self.rate}Hz)")
+
+        except Exception as e:
+            self.is_recording = False
+            raise Exception(f"启动录音失败: {str(e)}")
+
+    def _record_loop(self):
+        """录音循环"""
+        try:
+            while self.is_recording and cosmic.is_recording():
+                if self.stream:
+                    data = self.stream.read(self.chunk, exception_on_overflow=False)
+                    self.frames.append(data)
+        except Exception as e:
+            print(f"录音过程出错: {str(e)}")
+
+    def stop_recording(self, output_path=None):
+        """停止录音并保存文件"""
+        if not self.is_recording:
+            return None
+
+        self.is_recording = False
+
+        if self.thread:
+            self.thread.join(timeout=1.0)
+
+        if self.stream:
+            self.stream.stop_stream()
+            self.stream.close()
+
+        # 保存音频文件
+        if output_path and self.frames:
+            return self.save_audio_file(output_path)
+        elif self.frames:
+            # 使用默认文件名
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            default_path = f"recordings/recording_{timestamp}.wav"
+            return self.save_audio_file(default_path)
+
+        return None
+
+    def save_audio_file(self, file_path):
+        """保存音频文件"""
+        try:
+            # 确保目录存在
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+            # 保存WAV文件
+            wf = wave.open(file_path, 'wb')
+            wf.setnchannels(self.channels)
+            wf.setsampwidth(self.audio.get_sample_size(self.format))
+            wf.setframerate(self.rate)
+            wf.writeframes(b''.join(self.frames))
+            wf.close()
+
+            print(f"音频文件已保存: {file_path}")
+            return file_path
+
+        except Exception as e:
+            print(f"保存音频文件失败: {str(e)}")
+            return None
+
+    def cleanup(self):
+        """清理资源"""
+        if self.stream:
+            self.stream.close()
+        self.audio.terminate()
+
+    def get_audio_data(self):
+        """获取音频数据（用于直接处理）"""
+        if self.frames:
+            return b''.join(self.frames)
+        return None
+
+
+# 全局录音器实例
+audio_recorder = AudioRecorder()
+
+
+def start_recording():
+    """便捷的开始录音函数"""
+    audio_recorder.start_recording()
+
+
+def stop_recording(output_path=None):
+    """便捷的停止录音函数"""
+    return audio_recorder.stop_recording(output_path)
