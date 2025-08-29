@@ -92,6 +92,7 @@ python caps_writer_single.py
 ```cmd
 # 简单启动（推荐）
 rcaps.bat
+```
 
 
 ### 4. 开始使用
