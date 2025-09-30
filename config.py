@@ -109,12 +109,12 @@ class ClientConfig:
                                 #       即：单击录音，再次单击停止
                                 #       且：长按会执行原本的单击功能
     suppress     = False        # 是否阻塞按键事件（让其它程序收不到这个按键消息）
-    restore_key  = True         # 录音完成，松开按键后，是否自动再按一遍，以恢复 CapsLock 或 Shift 等按键之前的状态
-    threshold    = 0.3          # 按下快捷键后，触发语音识别的时间阈值
+    restore_key  = True        # 录音完成，松开按键后，是否自动再按一遍，以恢复 CapsLock 或 Shift 等按键之前的状态
+    threshold    = 0.5          # 按下快捷键后，触发语音识别的时间阈值
     paste        = True         # 是否以写入剪切板然后模拟 Ctrl-V 粘贴的方式输出结果
     restore_clip = True         # 模拟粘贴后是否恢复剪贴板
 
-    save_audio = True           # 是否保存录音文件
+    save_audio = False           # 是否保存录音文件
     audio_name_len = 20         # 将录音识别结果的前多少个字存储到录音文件名中，建议不要超过200
 
     trash_punc = '，。,.'        # 识别结果要消除的末尾标点

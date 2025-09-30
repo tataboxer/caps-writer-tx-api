@@ -50,6 +50,44 @@ class KeyboardHandler:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         return f"recordings/recording_{timestamp}.wav"
 
+    def smart_restore_key(self):
+        """智能恢复按键状态，避免干扰输入法"""
+        try:
+            import win32gui
+            import win32process
+            import psutil
+            
+            # 获取当前活动窗口
+            hwnd = win32gui.GetForegroundWindow()
+            if hwnd:
+                _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                process = psutil.Process(pid)
+                process_name = process.name().lower()
+                
+                # 如果是输入法相关进程，不恢复按键
+                input_method_processes = [
+                    'sogouinput.exe', 'qqpinyin.exe', 'baiduinput.exe',
+                    'microsoftpinyin.exe', 'ctfmon.exe', 'inputmethod.exe'
+                ]
+                
+                if any(ime in process_name for ime in input_method_processes):
+                    print(f"检测到输入法进程 {process_name}，跳过按键恢复")
+                    return
+            
+            # 延迟后恢复按键
+            time.sleep(0.1)  # 增加延迟时间
+            keyboard.send(ClientConfig.shortcut)
+            
+        except ImportError:
+            # 如果没有win32库，使用简单延迟
+            time.sleep(0.1)
+            keyboard.send(ClientConfig.shortcut)
+        except Exception as e:
+            print(f"智能恢复按键失败: {e}")
+            # 失败时使用原始方法
+            time.sleep(0.01)
+            keyboard.send(ClientConfig.shortcut)
+
     def count_down(self, e):
         """按下后开始倒数"""
         time.sleep(ClientConfig.threshold)
@@ -110,10 +148,9 @@ class KeyboardHandler:
                         cosmic.loop
                     )
 
-                    # 恢复按键状态
+                    # 智能恢复按键状态
                     if ClientConfig.restore_key:
-                        time.sleep(0.01)
-                        keyboard.send(ClientConfig.shortcut)
+                        self.smart_restore_key()
 
     def keyboard_event_handler(self, e):
         """键盘事件处理器"""
