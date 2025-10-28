@@ -5,6 +5,7 @@ import time
 import os
 from pathlib import Path
 from util.cosmic import cosmic
+from config import ClientConfig
 
 
 class AudioRecorder:
@@ -86,6 +87,11 @@ class AudioRecorder:
             self.stream.stop_stream()
             self.stream.close()
 
+        # 检查是否需要保存音频文件
+        if not ClientConfig.save_audio:
+            print("音频保存已禁用，不保存录音文件")
+            return None
+
         # 保存音频文件
         if output_path and self.frames:
             return self.save_audio_file(output_path)
@@ -129,6 +135,31 @@ class AudioRecorder:
         if self.frames:
             return b''.join(self.frames)
         return None
+    
+    def get_wav_data(self):
+        """获取WAV格式的音频数据"""
+        if not self.frames:
+            return None
+        
+        try:
+            import io
+            # 创建内存中的WAV文件
+            wav_buffer = io.BytesIO()
+            wf = wave.open(wav_buffer, 'wb')
+            wf.setnchannels(self.channels)
+            wf.setsampwidth(self.audio.get_sample_size(self.format))
+            wf.setframerate(self.rate)
+            wf.writeframes(b''.join(self.frames))
+            wf.close()
+            
+            # 返回WAV数据
+            wav_data = wav_buffer.getvalue()
+            wav_buffer.close()
+            return wav_data
+            
+        except Exception as e:
+            print(f"生成WAV数据失败: {e}")
+            return None
 
 
 # 全局录音器实例

@@ -22,6 +22,7 @@ class ResultHandler:
             'timestamp': timestamp.isoformat(),
             'audio_file': audio_file,
             'recognition_result': recognition_result,
+            'asr_model': os.getenv('ASR_SERVICE', 'volcengine'),  # 使用实时环境变量
             'date': timestamp.strftime('%Y-%m-%d'),
             'time': timestamp.strftime('%H:%M:%S')
         }

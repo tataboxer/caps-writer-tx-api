@@ -10,94 +10,45 @@ try:
     dotenv_path = Path(__file__).parent / '.env'
     if dotenv_path.exists():
         load_dotenv(dotenv_path)
-        print("✅ 已加载 .env 配置文件")
+        print("已加载 .env 配置文件")
     else:
-        print("⚠️  未找到 .env 文件，将使用默认配置")
+        print("未找到 .env 文件，将使用默认配置")
 except ImportError:
-    print("⚠️  python-dotenv 未安装，将使用默认配置")
+    print("python-dotenv 未安装，将使用默认配置")
 
 
-# 腾讯ASR配置 - 从环境变量读取
+# 腾讯ASR配置
 class TencentASRConfig:
-    """腾讯云ASR配置类，从环境变量读取，支持多组配置随机负载均衡"""
-
-    def __init__(self):
-        self._configs = []
-        self._load_configs_from_env()
-
-    def _load_configs_from_env(self):
-        """从环境变量加载配置"""
-        self._configs = []
-
-        # 遍历所有配置组
-        config_index = 1
-        while True:
-            secret_id_key = f'TENCENT_SECRET_ID_{config_index}'
-            secret_key_key = f'TENCENT_SECRET_KEY_{config_index}'
-            region_key = f'TENCENT_REGION_{config_index}'
-
-            secret_id = os.getenv(secret_id_key)
-            secret_key = os.getenv(secret_key_key)
-            region = os.getenv(region_key, 'ap-shanghai')
-
-            # 如果没有找到配置，停止遍历
-            if not secret_id or not secret_key:
-                break
-
-            self._configs.append({
-                'secret_id': secret_id,
-                'secret_key': secret_key,
-                'region': region,
-                'bucket': None
-            })
-
-            config_index += 1
-
-        # 如果没有环境变量配置，抛出错误
-        if not self._configs:
-            raise ValueError(
-                "\n❌ 未找到腾讯云ASR配置！\n"
-                "请按照以下步骤配置：\n"
-                "1. 复制 .env.example 为 .env\n"
-                "2. 编辑 .env 文件，填入你的腾讯云SecretId和SecretKey\n"
-                "3. 重新运行程序\n\n"
-                "示例配置：\n"
-                "TENCENT_SECRET_ID_1=你的SecretId\n"
-                "TENCENT_SECRET_KEY_1=你的SecretKey\n"
-                "TENCENT_REGION_1=ap-guangzhou\n"
-            )
-
-    def get_random_config(self):
-        """随机获取一组配置，实现负载均衡"""
-        if not self._configs:
-            raise ValueError("没有配置的腾讯云ASR凭证")
-
-        return random.choice(self._configs)
-
-    def get_config_count(self):
-        """获取配置组数量"""
-        return len(self._configs)
-
-    # 向后兼容属性 - 如果只有一个配置，使用第一个
-    @property
-    def secret_id(self):
-        return self._configs[0]['secret_id'] if self._configs else ''
-
-    @property
-    def secret_key(self):
-        return self._configs[0]['secret_key'] if self._configs else ''
-
-    @property
-    def region(self):
-        return self._configs[0]['region'] if self._configs else 'ap-shanghai'
-
-    @property
-    def bucket(self):
-        return self._configs[0]['bucket'] if self._configs else None
+    """腾讯云ASR配置类"""
+    
+    secret_id = os.getenv('TENCENT_SECRET_ID', '')
+    secret_key = os.getenv('TENCENT_SECRET_KEY', '')
+    region = os.getenv('TENCENT_REGION', 'ap-shanghai')
 
 
 # 创建全局配置实例
 tencent_asr_config = TencentASRConfig()
+
+
+# 火山引擎ASR配置
+class VolcengineASRConfig:
+    """火山引擎ASR配置类"""
+    
+    app_id = os.getenv('VOLCENGINE_APP_ID', '7262428661')
+    access_key = os.getenv('VOLCENGINE_ACCESS_KEY', '-KqMDs8LhnRInYaTAjMr8BOyY-RqUQnx')
+
+
+# ASR服务选择配置
+class ASRConfig:
+    """ASR服务配置"""
+    
+    # ASR服务类型: 'volcengine' 或 'tencent'
+    asr_service = os.getenv('ASR_SERVICE', 'volcengine')  # 默认使用火山引擎
+
+
+# 创建全局配置实例
+volcengine_asr_config = VolcengineASRConfig()
+asr_config = ASRConfig()
 
 
 # 客户端配置

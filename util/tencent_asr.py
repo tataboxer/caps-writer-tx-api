@@ -4,7 +4,8 @@ from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
 from tencentcloud.common.profile.http_profile import HttpProfile
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
-from tencentcloud.asr.v20190614 import asr_client, models
+from tencentcloud.asr.v20190614 import asr_client as asr_module, models
+from tencentcloud.asr.v20190614.asr_client import AsrClient
 from config import tencent_asr_config as TencentASRConfig
 
 
@@ -13,23 +14,18 @@ class TencentASRClient:
 
     def __init__(self):
         try:
-            # 获取随机配置（负载均衡）
-            config = TencentASRConfig.get_random_config()
-            config_count = TencentASRConfig.get_config_count()
+            # 使用简化的配置
+            self.secret_id = TencentASRConfig.secret_id
+            self.secret_key = TencentASRConfig.secret_key
+            self.region = TencentASRConfig.region
+            
+            # 检查配置是否完整
+            if not self.secret_id or not self.secret_key:
+                raise ValueError("腾讯云ASR配置不完整，请检查TENCENT_SECRET_ID和TENCENT_SECRET_KEY")
 
-            # 保存配置信息用于调试
-            self.secret_id = config['secret_id']
-            self.secret_key = config['secret_key']
-            self.region = config['region']
-            self.bucket = config['bucket']
-
-            # 显示当前使用的配置信息
+            # 显示配置信息
             masked_secret_id = self.secret_id[:8] + "****" + self.secret_id[-4:] if len(self.secret_id) > 12 else self.secret_id
-            if config_count > 1:
-                print(f"🔄 使用腾讯云ASR配置 (负载均衡: {config_count}组配置)")
-                print(f"📍 当前配置: {self.region} | SecretId: {masked_secret_id}")
-            else:
-                print(f"📍 使用腾讯云ASR配置: {self.region}")
+            print(f"使用腾讯云ASR配置: {self.region} | SecretId: {masked_secret_id}")
 
             # 使用腾讯云官方SDK
             cred = credential.Credential(self.secret_id, self.secret_key)
@@ -39,11 +35,11 @@ class TencentASRClient:
             client_profile = ClientProfile()
             client_profile.httpProfile = http_profile
 
-            self.client = asr_client.AsrClient(cred, self.region, client_profile)
-            print("✅ 腾讯云ASR客户端初始化成功")
+            self.client = AsrClient(cred, self.region, client_profile)
+            print("腾讯云ASR客户端初始化成功")
 
         except Exception as e:
-            print(f"❌ 腾讯云ASR客户端初始化失败: {str(e)}")
+            print(f"腾讯云ASR客户端初始化失败: {str(e)}")
             self.client = None
 
     def recognize_audio_file(self, audio_file_path, audio_format='wav'):

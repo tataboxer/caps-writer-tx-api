@@ -1,15 +1,15 @@
-# CapsWriter - 腾讯ASR语音输入工具
+# CapsWriter - 智能语音输入工具
 
-基于腾讯云ASR的PC端离线语音输入和字幕转录工具，支持CapsLock按键控制语音采集。
+支持火山引擎和腾讯云双 ASR 服务的 PC 端语音输入工具，支持 CapsLock 按键控制语音采集。
 
 ## 功能特性
 
 - **CapsLock按键录音**：按下大写锁定键开始录音，松开键结束识别并输入结果
-- **腾讯云ASR集成**：使用腾讯云ASR进行高质量语音识别
+- **双ASR服务支持**：支持火山引擎和腾讯云ASR，可动态切换
 - **长按/单击模式**：支持长按模式（按下录音，松开停止）和单击模式
-- **系统托盘图标**：运行时在系统托盘显示图标，支持右键菜单退出
+- **系统托盘图标**：运行时在系统托盘显示图标，支持右键菜单切换ASR服务
 - **音频文件保存**：自动保存录音文件到本地
-- **结果本地记录**：将识别结果保存到本地文件
+- **结果本地记录**：将识别结果保存到本地文件，包含使用的ASR模型信息
 - **自动粘贴**：支持自动将识别结果粘贴到当前界面
 
 ## 快速开始
@@ -20,7 +20,7 @@
 pip install -r requirements.txt
 ```
 
-### 2. 配置腾讯云ASR
+### 2. 配置ASR服务
 
 #### 方法一：环境变量配置（推荐）
 
@@ -31,45 +31,24 @@ pip install -r requirements.txt
 
 2. **编辑 `.env` 文件**：
    ```env
-   # 第一组配置
-   TENCENT_SECRET_ID_1=你的腾讯云SecretId
-   TENCENT_SECRET_KEY_1=你的腾讯云SecretKey
-   TENCENT_REGION_1=ap-guangzhou
+   # 腾讯云ASR配置
+   TENCENT_SECRET_ID=你的腾讯云SecretId
+   TENCENT_SECRET_KEY=你的腾讯云SecretKey
+   TENCENT_REGION=ap-guangzhou
 
-   # 第二组配置（可选，用于负载均衡）
-   TENCENT_SECRET_ID_2=你的腾讯云SecretId_2
-   TENCENT_SECRET_KEY_2=你的腾讯云SecretKey_2
-   TENCENT_REGION_2=ap-shanghai
+   # 火山引擎ASR配置
+   VOLCENGINE_APP_ID=你的APP_ID
+   VOLCENGINE_ACCESS_KEY=你的ACCESS_KEY
+
+   # ASR服务选择 (默认使用火山引擎)
+   ASR_SERVICE=volcengine
    ```
-
-3. **安装依赖**：
-   ```bash
-   pip install python-dotenv
-   ```
-
-#### 方法二：直接配置环境变量
-
-你也可以直接设置系统环境变量：
-
-**Windows:**
-```cmd
-set TENCENT_SECRET_ID_1=你的SecretId
-set TENCENT_SECRET_KEY_1=你的SecretKey
-set TENCENT_REGION_1=ap-guangzhou
-```
-
-**Linux/Mac:**
-```bash
-export TENCENT_SECRET_ID_1=你的SecretId
-export TENCENT_SECRET_KEY_1=你的SecretKey
-export TENCENT_REGION_1=ap-guangzhou
-```
 
 ## 🔒 安全说明
 
 - `.env` 文件已添加到 `.gitignore`，不会被上传到Git
 - 建议使用环境变量配置，避免敏感信息泄露
-- 多组配置支持自动负载均衡，提高服务可用性
+- 支持双 ASR 服务，提高服务可用性
 
 ### 3. 运行程序
 
@@ -109,11 +88,16 @@ rcaps.bat
 ## 使用方法
 
 1. **启动程序**：运行 `python start_single.py` 或 `python caps_writer_single.py`
-2. **系统托盘**：程序启动后会在系统托盘显示图标，可以右键查看状态或退出
+2. **系统托盘**：程序启动后会在系统托盘显示图标，可以右键查看状态、切换ASR服务或退出
 3. **录音控制**：
     - 长按模式（默认）：按下CapsLock开始录音，松开结束并识别
     - 单击模式：单击CapsLock开始录音，再次单击结束并识别
-4. **退出程序**：
+4. **切换ASR服务**：
+    - 右键托盘图标
+    - 直接点击目标服务（火山引擎/腾讯云）
+    - 配置立即生效，无需重启程序
+    - 菜单会实时显示当前使用的服务（✓ 标记）
+5. **退出程序**：
     - 按Ctrl+C终止程序
     - 或右键托盘图标选择"退出"
 5. **查看结果**：
@@ -130,6 +114,15 @@ rcaps.bat
 - `save_audio`: 是否保存录音文件（默认：True）
 - `paste`: 是否自动粘贴结果（默认：True）
 
+### ASR服务配置
+
+- **火山引擎 (Volcengine)**：默认服务，识别效果更佳
+- **腾讯云 (Tencent)**：备用服务，稳定可靠
+- **切换方式**：
+  - 系统托盘右键菜单直接点击服务名称（推荐）
+  - 手动修改 `.env` 文件中的 `ASR_SERVICE`
+- **实时切换**：配置立即生效，无需重启程序
+
 
 ## 项目结构
 
@@ -145,7 +138,10 @@ CapsWriter/
 │   ├── cosmic.py         # 全局状态管理
 │   ├── keyboard_handler.py # 键盘监听
 │   ├── audio_recorder.py # 音频录制
+│   ├── asr_manager.py    # ASR服务管理器
 │   ├── tencent_asr.py    # 腾讯ASR集成
+│   ├── volcengine_asr.py # 火山引擎ASR集成
+│   ├── config_manager.py # 配置管理器
 │   └── result_handler.py # 结果处理
 └── README.md             # 说明文档
 ```
@@ -153,12 +149,14 @@ CapsWriter/
 ## 技术栈
 
 - **Python 3.8+**: 主开发语言
-- **腾讯云ASR**: 语音识别服务
+- **火山引擎ASR**: 主要语音识别服务
+- **腾讯云ASR**: 备用语音识别服务
 - **PyAudio**: 音频录制
 - **Keyboard**: 键盘监听
 - **Pyperclip**: 剪贴板操作
 - **Pystray**: 系统托盘图标
 - **Pillow**: 图像处理
+- **Requests**: HTTP请求
 
 ## 🚀 未来优化计划
 
@@ -198,14 +196,23 @@ CapsWriter/
 3. **音频设备**：
    - 确保系统有可用的麦克风设备
 
-4. **腾讯云配置**：
-   - 需要有效的腾讯云账号和ASR服务
-   - 确保SecretId和SecretKey正确配置
+4. **ASR服务配置**：
+   - 火山引擎：需要有效的APP ID和Access Key
+   - 腾讯云：需要有效的SecretId和SecretKey
 
 ## 常见问题
 
-### Q: 无法连接到腾讯云ASR服务
-A: 检查网络连接和腾讯云配置信息
+### Q: 无法连接到ASR服务
+A: 检查网络连接和ASR服务配置信息，或通过系统托盘切换到另一个ASR服务
+
+### Q: 系统托盘切换ASR服务后没有反应
+A: 检查系统托盘菜单中的勾选状态，切换后应该立即显示新的服务有勾选标记
+
+### Q: 如何确认当前使用的ASR服务
+A: 可以通过以下方式确认：
+   - 系统托盘菜单中的勾选标记
+   - 识别结果文件中的 `asr_model` 字段
+   - 程序启动时的控制台输出
 
 ### Q: 录音无响应
 A: 检查麦克风权限和音频设备设置
@@ -213,6 +220,17 @@ A: 检查麦克风权限和音频设备设置
 ### Q: 键盘监听无效
 A: 尝试以管理员权限运行程序
 
+## 更新日志
+
+### v2.0 - ASR服务动态切换
+- ✨ 新增火山引擎大模型ASR支持
+- ✨ 系统托盘实时切换ASR服务
+- ✨ 配置立即生效，无需重启程序
+- ✨ 识别结果自动记录ASR模型信息
+- ✨ 系统托盘菜单实时显示当前服务状态
+- 🔧 简化腾讯云ASR配置，移除负载均衡复杂性
+- 🔧 优化音频保存配置，支持不保存文件直接识别
+
 ## 许可证
 
-本项目仅供学习和个人使用，请遵守腾讯云ASR服务的使用条款。
+本项目仅供学习和个人使用，请遵守相应ASR服务的使用条款。

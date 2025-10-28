@@ -5,6 +5,7 @@ CapsWriter单进程版本
 """
 
 import asyncio
+import os
 import signal
 import sys
 import time
@@ -14,12 +15,13 @@ from pathlib import Path
 # 添加当前目录到Python路径
 sys.path.append(str(Path(__file__).parent))
 
-from config import ClientConfig, TencentASRConfig
+from config import ClientConfig, asr_config
 from util.cosmic import cosmic
 from util.keyboard_handler import keyboard_handler
 from util.audio_recorder import audio_recorder
-from util.tencent_asr import recognize_audio
+from util.asr_manager import recognize_audio
 from util.result_handler import save_recognition_result
+from util.config_manager import config_manager
 
 # 系统托盘相关
 try:
@@ -64,7 +66,7 @@ class CapsWriterSingle:
                 # 创建一个默认的简单图标
                 icon = Image.new('RGB', (64, 64), color='red')
 
-            # 创建菜单
+            # 创建简单菜单
             menu = pystray.Menu(
                 pystray.MenuItem(
                     "CapsWriter 语音输入工具",
@@ -73,14 +75,20 @@ class CapsWriterSingle:
                 ),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem(
-                    f"快捷键: {ClientConfig.shortcut}",
+                    f"ASR服务: {asr_config.asr_service.upper()}",
                     lambda: None,
                     enabled=False
                 ),
+                pystray.Menu.SEPARATOR,
                 pystray.MenuItem(
-                    f"模式: {'长按' if ClientConfig.hold_mode else '单击'}",
-                    lambda: None,
-                    enabled=False
+                    "火山引擎 (Volcengine)",
+                    lambda: self.switch_asr_service('volcengine'),
+                    checked=lambda item: os.getenv('ASR_SERVICE', 'volcengine') == 'volcengine'
+                ),
+                pystray.MenuItem(
+                    "腾讯云 (Tencent)",
+                    lambda: self.switch_asr_service('tencent'),
+                    checked=lambda item: os.getenv('ASR_SERVICE', 'volcengine') == 'tencent'
                 ),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem(
@@ -102,6 +110,8 @@ class CapsWriterSingle:
         except Exception as e:
             print(f"创建系统托盘图标失败: {e}")
             return None
+    
+
 
     def start_system_tray(self):
         """启动系统托盘"""
@@ -128,6 +138,36 @@ class CapsWriterSingle:
                 print("系统托盘图标已停止")
             except Exception as e:
                 print(f"停止系统托盘时出错: {e}")
+    
+    def create_switch_handler(self, service):
+        """创建切换处理器"""
+        def handler():
+            self.switch_asr_service(service)
+        return handler
+    
+    def switch_asr_service(self, service):
+        """切换ASR服务"""
+        try:
+            current_service = config_manager.get_current_asr_service()
+            if current_service == service:
+                print(f"已经是{service.upper()}服务，无需切换")
+                return
+            
+            print(f"切换ASR服务: {current_service} -> {service}")
+            
+            # 更新配置文件
+            if config_manager.update_asr_service(service):
+                print(f"ASR服务已切换为: {service.upper()}")
+                
+                # 重新加载ASR配置
+                from util.asr_manager import asr_manager
+                asr_manager.reload_config()
+                print("配置已立即生效，无需重启程序")
+            else:
+                print("更新配置失败")
+                
+        except Exception as e:
+            print(f"切换ASR服务失败: {e}")
 
     def start_audio_recording(self, audio_file):
         """开始音频录制"""
@@ -143,17 +183,33 @@ class CapsWriterSingle:
                 while cosmic.is_recording():
                     time.sleep(0.01)
 
-                # 停止录音并保存
+                # 停止录音
                 saved_file = audio_recorder.stop_recording(audio_file)
+                
+                # 获取音频数据进行识别
                 if saved_file:
                     print(f"录音已保存: {saved_file}")
-                    # 启动识别线程
+                    # 使用文件路径识别
                     recognition_thread = threading.Thread(
                         target=self.process_recognition,
-                        args=(saved_file,)
+                        args=(saved_file, None)
                     )
                     recognition_thread.daemon = True
                     recognition_thread.start()
+                else:
+                    # 获取WAV格式的音频数据
+                    wav_data = audio_recorder.get_wav_data()
+                    if wav_data:
+                        print("使用音频数据进行识别")
+                        # 使用音频数据识别
+                        recognition_thread = threading.Thread(
+                            target=self.process_recognition,
+                            args=(None, wav_data)
+                        )
+                        recognition_thread.daemon = True
+                        recognition_thread.start()
+                    else:
+                        print("未获取到音频数据")
 
             self.recording_thread = threading.Thread(target=recording_worker)
             self.recording_thread.daemon = True
@@ -162,18 +218,29 @@ class CapsWriterSingle:
         except Exception as e:
             print(f"启动录音失败: {str(e)}")
 
-    def process_recognition(self, audio_file):
+    def process_recognition(self, audio_file, audio_data):
         """处理语音识别"""
         try:
-            print(f"开始识别音频文件: {audio_file}")
-
-            # 调用腾讯ASR
-            result = recognize_audio(audio_file, audio_format='wav')
+            if audio_file:
+                print(f"开始识别音频文件: {audio_file}")
+                # 使用文件识别
+                from util.asr_manager import recognize_audio
+                result = recognize_audio(audio_file)
+                source = audio_file
+            elif audio_data:
+                print("开始识别音频数据")
+                # 使用音频数据识别
+                from util.asr_manager import recognize_audio_data
+                result = recognize_audio_data(audio_data)
+                source = "audio_data"
+            else:
+                print("无效的音频数据")
+                return
 
             if result:
                 print(f"识别结果: {result}")
                 # 保存结果并自动粘贴
-                save_recognition_result(audio_file, result)
+                save_recognition_result(source, result)
             else:
                 print("识别失败：未获取到有效结果")
 
@@ -185,13 +252,7 @@ class CapsWriterSingle:
         print("=== CapsWriter 单进程版本 ===")
         print(f"快捷键: {ClientConfig.shortcut}")
         print(f"模式: {'长按模式' if ClientConfig.hold_mode else '单击模式'}")
-        print("使用腾讯ASR进行语音识别")
-
-        # 检查腾讯ASR配置
-        if not TencentASRConfig.secret_id or not TencentASRConfig.secret_key:
-            print("错误：腾讯ASR配置不完整")
-            print("请在config.py中配置secret_id和secret_key")
-            return
+        print(f"ASR服务: {asr_config.asr_service.upper()}")
 
         self.running = True
         self.setup_signal_handlers()

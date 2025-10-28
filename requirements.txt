@@ -29,3 +29,6 @@ Pillow>=8.0.0
 
 # 环境变量支持
 python-dotenv>=1.0.0
+
+# HTTP请求
+requests>=2.25.0

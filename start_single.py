@@ -103,7 +103,7 @@ def main():
     if not check_single_instance():
         return
 
-    print("✓ 所有检查通过，开始启动CapsWriter...\n")
+    print("所有检查通过，开始启动CapsWriter...\n")
 
     # 启动单进程版本
     try:
