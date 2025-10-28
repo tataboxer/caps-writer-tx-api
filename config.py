@@ -66,12 +66,6 @@ class ClientConfig:
     restore_clip = True         # 模拟粘贴后是否恢复剪贴板
 
     save_audio = False           # 是否保存录音文件
-    audio_name_len = 20         # 将录音识别结果的前多少个字存储到录音文件名中，建议不要超过200
-
-    trash_punc = '，。,.'        # 识别结果要消除的末尾标点
-
-    mic_seg_duration = 15       # 麦克风听写时分段长度：15秒
-    mic_seg_overlap = 2         # 麦克风听写时分段重叠：2秒
 
 
 # 项目路径配置

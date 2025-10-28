@@ -74,12 +74,7 @@ class CapsWriterSingle:
                     enabled=False
                 ),
                 pystray.Menu.SEPARATOR,
-                pystray.MenuItem(
-                    f"ASR服务: {asr_config.asr_service.upper()}",
-                    lambda: None,
-                    enabled=False
-                ),
-                pystray.Menu.SEPARATOR,
+
                 pystray.MenuItem(
                     "火山引擎 (Volcengine)",
                     lambda: self.switch_asr_service('volcengine'),
