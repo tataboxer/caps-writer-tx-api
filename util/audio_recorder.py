@@ -3,6 +3,7 @@ import pyaudio
 import threading
 import time
 import os
+import numpy as np
 from pathlib import Path
 from util.cosmic import cosmic
 from config import ClientConfig
@@ -44,6 +45,9 @@ class AudioRecorder:
 
         self.frames = []
         self.is_recording = True
+        
+        # 设置 cosmic 状态
+        cosmic.start_recording()
 
         try:
             self.stream = self.audio.open(
@@ -61,15 +65,37 @@ class AudioRecorder:
 
         except Exception as e:
             self.is_recording = False
+            cosmic.stop_recording()
             raise Exception(f"启动录音失败: {str(e)}")
 
     def _record_loop(self):
         """录音循环"""
         try:
-            while self.is_recording and cosmic.is_recording():
+            while self.is_recording:
                 if self.stream:
                     data = self.stream.read(self.chunk, exception_on_overflow=False)
                     self.frames.append(data)
+                    
+                    # 计算实时音频电平
+                    audio_data = np.frombuffer(data, dtype=np.int16)
+                    rms = np.sqrt(np.mean(audio_data**2))
+                    
+                    # 增强灵敏度：使用对数缩放 + 放大系数
+                    if rms > 0:
+                        power_level = min(100, max(0, np.log10(rms + 1) * 25))  # 对数缩放，更敏感
+                    else:
+                        power_level = 0
+                    
+                    # 调试输出
+                    if power_level > 2:  # 降低阈值
+                        print(f"🎵 RMS: {rms:.1f}, Power: {power_level:.1f}%")
+                    
+                    # 更新波形显示（平滑过渡）
+                    try:
+                        from util.waveform_display import update_waveform_level
+                        update_waveform_level(power_level)
+                    except Exception as e:
+                        print(f"波形更新失败: {e}")
         except Exception as e:
             print(f"录音过程出错: {str(e)}")
 
@@ -79,6 +105,7 @@ class AudioRecorder:
             return None
 
         self.is_recording = False
+        cosmic.stop_recording()
 
         if self.thread:
             self.thread.join(timeout=1.0)

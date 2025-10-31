@@ -5,6 +5,7 @@ from threading import Event
 from concurrent.futures import ThreadPoolExecutor
 from config import ClientConfig
 from util.cosmic import cosmic
+from util.waveform_display import show_waveform, hide_waveform
 
 
 class KeyboardHandler:
@@ -28,16 +29,29 @@ class KeyboardHandler:
         print("开始录音...")
         cosmic.start_recording()
         cosmic.set_audio_file(self.generate_audio_filename())
+        
+        # 延迟显示波形（超过0.5秒阈值后）
+        def delayed_waveform():
+            time.sleep(ClientConfig.threshold)
+            if cosmic.is_recording():
+                show_waveform()
+        
+        self.pool.submit(delayed_waveform)
 
     def cancel_recording(self):
         """取消录音"""
         print("取消录音")
         cosmic.stop_recording()
         cosmic.reset()
+        if ClientConfig.show_waveform:
+            hide_waveform()  # 隐藏波形窗口
 
     def finish_recording(self):
         """完成录音"""
         duration = cosmic.stop_recording()
+        if ClientConfig.show_waveform:
+            hide_waveform()  # 隐藏波形窗口
+        
         if duration:
             duration_sec = time.time() - duration
             print(f"录音完成，持续时间: {duration_sec:.2f}秒")

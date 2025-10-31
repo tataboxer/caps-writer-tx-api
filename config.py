@@ -66,6 +66,9 @@ class ClientConfig:
     restore_clip = True         # 模拟粘贴后是否恢复剪贴板
 
     save_audio = False           # 是否保存录音文件
+    
+    # 波形显示配置
+    show_waveform = True         # 是否显示波形动画
 
 
 # 项目路径配置

@@ -27,8 +27,16 @@ psutil>=5.8.0
 pystray>=0.19.0
 Pillow>=8.0.0
 
+# UI组件 - 使用Python内置tkinter
+
 # 环境变量支持
 python-dotenv>=1.0.0
 
 # HTTP请求
 requests>=2.25.0
+
+# 数学计算
+numpy>=1.21.0
+
+# 桌面webview窗口 - 已替换为tkinter
+# pywebview>=4.0.0
