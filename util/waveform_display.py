@@ -39,42 +39,48 @@ class WaveformWindow:
         
     def _create_window(self):
         """创建tkinter窗口"""
-        self.window = tk.Tk()
-        
-        # 窗口配置
-        self.window.title("")
-        self.window.geometry(f"{self.width}x{self.height}")
-        self.window.overrideredirect(True)
-        self.window.attributes('-topmost', True)
-        self.window.attributes('-alpha', 0.7)  # 70%透明度
-        
-        # 深色背景
-        bg_color = '#1a1a1a'
-        self.window.configure(bg=bg_color)
-        
-        # 居中定位
-        self._center_window()
-        
-        # 创建画布
-        self.canvas = tk.Canvas(
-            self.window,
-            width=self.width,
-            height=self.height,
-            bg=bg_color,
-            highlightthickness=0,
-            bd=0
-        )
-        self.canvas.pack()
-        
-        # 开始动画
-        self.animation_running = True
-        self._animate()
-        
-        # 启动事件循环
         try:
+            self.window = tk.Tk()
+            
+            # 窗口配置
+            self.window.title("")
+            self.window.geometry(f"{self.width}x{self.height}")
+            self.window.overrideredirect(True)
+            self.window.attributes('-topmost', True)
+            self.window.attributes('-alpha', 0.7)  # 70%透明度
+            
+            # 深色背景
+            bg_color = '#1a1a1a'
+            self.window.configure(bg=bg_color)
+            
+            # 居中定位
+            self._center_window()
+            
+            # 创建画布
+            self.canvas = tk.Canvas(
+                self.window,
+                width=self.width,
+                height=self.height,
+                bg=bg_color,
+                highlightthickness=0,
+                bd=0
+            )
+            self.canvas.pack()
+            
+            # 开始动画
+            self.animation_running = True
+            self._animate()
+            
+            # 启动事件循环
             self.window.mainloop()
-        except:
-            pass
+            
+        except Exception as e:
+            print(f"[调试] 波形窗口创建失败: {e}")
+        finally:
+            # 确保清理资源
+            self._cleanup_references()
+            self.is_visible = False
+            self.animation_running = False
     
     def _center_window(self):
         """窗口居中定位"""
@@ -193,6 +199,11 @@ class WaveformWindow:
         """显示波形窗口"""
         if self.is_visible:
             return
+        
+        # 确保之前的窗口已经完全清理
+        if self.window:
+            self.hide()
+            time.sleep(0.1)  # 等待清理完成
             
         self.is_visible = True
         self.window_thread = threading.Thread(target=self._create_window, daemon=True)
@@ -202,22 +213,38 @@ class WaveformWindow:
     
     def hide(self):
         """隐藏波形窗口"""
-        if not self.is_visible or not self.window:
+        if not self.is_visible:
             return
             
         self.is_visible = False
         self.animation_running = False
         
-        try:
-            self.window.quit()
-            self.window.destroy()
-        except:
-            pass
-        
-        self.window = None
-        self.canvas = None
+        # 在主线程中安全关闭窗口
+        if self.window:
+            try:
+                # 使用after在主线程中执行关闭操作
+                self.window.after(0, self._safe_destroy)
+            except:
+                # 如果窗口已经被销毁，直接清理
+                self._cleanup_references()
         
         print("🔇 半透明波形窗口已隐藏")
+    
+    def _safe_destroy(self):
+        """安全销毁窗口"""
+        try:
+            if self.window:
+                self.window.quit()
+                self.window.destroy()
+        except:
+            pass
+        finally:
+            self._cleanup_references()
+    
+    def _cleanup_references(self):
+        """清理引用"""
+        self.window = None
+        self.canvas = None
     
     def is_showing(self):
         """检查窗口是否显示"""
@@ -230,19 +257,32 @@ waveform_window = WaveformWindow()
 
 def update_waveform_level(level):
     """更新波形电平（平滑过渡）"""
-    waveform_window.target_power_level = level
+    try:
+        if waveform_window.is_visible:
+            waveform_window.target_power_level = level
+    except:
+        pass
 
 
 def show_waveform():
     """显示波形窗口"""
-    waveform_window.show()
+    try:
+        waveform_window.show()
+    except Exception as e:
+        print(f"[调试] 显示波形失败: {e}")
 
 
 def hide_waveform():
     """隐藏波形窗口"""
-    waveform_window.hide()
+    try:
+        waveform_window.hide()
+    except Exception as e:
+        print(f"[调试] 隐藏波形失败: {e}")
 
 
 def is_waveform_showing():
     """检查波形窗口是否显示"""
-    return waveform_window.is_showing()
+    try:
+        return waveform_window.is_showing()
+    except:
+        return False

@@ -236,11 +236,14 @@ class CapsWriterSingle:
                 print(f"识别结果: {result}")
                 # 保存结果并自动粘贴
                 save_recognition_result(source, result)
+                print("识别完成，系统已准备下次录音")
             else:
                 print("识别失败：未获取到有效结果")
+                print("系统已准备下次录音")
 
         except Exception as e:
             print(f"识别过程出错: {str(e)}")
+            print("系统已准备下次录音")
 
     def start(self):
         """启动应用"""

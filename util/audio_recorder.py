@@ -86,9 +86,9 @@ class AudioRecorder:
                     else:
                         power_level = 0
                     
-                    # 调试输出
-                    if power_level > 2:  # 降低阈值
-                        print(f"🎵 RMS: {rms:.1f}, Power: {power_level:.1f}%")
+                    # 简化的调试输出（去掉RMS和Power信息）
+                    # if power_level > 2:  # 降低阈值
+                    #     print(f"🎵 RMS: {rms:.1f}, Power: {power_level:.1f}%")
                     
                     # 更新波形显示（平滑过渡）
                     try:
@@ -150,6 +150,7 @@ class AudioRecorder:
         except Exception as e:
             print(f"保存音频文件失败: {str(e)}")
             return None
+
 
     def cleanup(self):
         """清理资源"""

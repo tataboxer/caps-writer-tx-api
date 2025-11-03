@@ -45,6 +45,9 @@ class KeyboardHandler:
         cosmic.reset()
         if ClientConfig.show_waveform:
             hide_waveform()  # 隐藏波形窗口
+        
+        # 取消录音后也重启键盘监听
+        self.restart()
 
     def finish_recording(self):
         """完成录音"""
@@ -57,6 +60,10 @@ class KeyboardHandler:
             print(f"录音完成，持续时间: {duration_sec:.2f}秒")
         else:
             print("录音完成")
+        
+        # 录音完成后重启键盘监听
+        self.restart()
+        
         return cosmic.get_audio_file()
 
     def generate_audio_filename(self):
@@ -196,6 +203,23 @@ class KeyboardHandler:
         print(f"键盘监听已启动，使用按键: {ClientConfig.shortcut}")
         print("长按模式" if ClientConfig.hold_mode else "单击模式")
 
+    def restart(self):
+        """重启键盘监听，确保下次按键正常"""
+        try:
+            # 停止当前监听
+            keyboard.unhook_all()
+            
+            # 重新启动监听
+            suppress = ClientConfig.suppress or not ClientConfig.hold_mode
+            keyboard.hook_key(
+                ClientConfig.shortcut,
+                self.keyboard_event_handler,
+                suppress=suppress
+            )
+            
+        except Exception as e:
+            print(f"重启键盘监听失败: {e}")
+    
     def stop(self):
         """停止键盘监听"""
         keyboard.unhook_all()
