@@ -60,9 +60,16 @@ class VolcengineASRClient:
             }
         }
         
-        # 发送请求
+        # 发送请求（禁用代理）
         headers = self._prepare_headers()
-        response = requests.post(self.base_url, json=request_body, headers=headers)
+        proxies = {'http': None, 'https': None}
+        response = requests.post(
+            self.base_url, 
+            json=request_body, 
+            headers=headers, 
+            proxies=proxies,
+            timeout=30
+        )
         
         # 检查响应
         if response.status_code != 200:
@@ -101,9 +108,16 @@ class VolcengineASRClient:
             }
         }
         
-        # 发送请求
+        # 发送请求（禁用代理）
         headers = self._prepare_headers()
-        response = requests.post(self.base_url, json=request_body, headers=headers)
+        proxies = {'http': None, 'https': None}
+        response = requests.post(
+            self.base_url, 
+            json=request_body, 
+            headers=headers, 
+            proxies=proxies,
+            timeout=30
+        )
         
         # 检查响应
         if response.status_code != 200:

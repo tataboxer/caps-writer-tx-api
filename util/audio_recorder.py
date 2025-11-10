@@ -78,7 +78,17 @@ class AudioRecorder:
                     
                     # 计算实时音频电平
                     audio_data = np.frombuffer(data, dtype=np.int16)
-                    rms = np.sqrt(np.mean(audio_data**2))
+                    
+                    # 安全计算RMS，避免无效值
+                    if len(audio_data) > 0:
+                        audio_squared = audio_data.astype(np.float64) ** 2
+                        mean_squared = np.mean(audio_squared)
+                        if mean_squared > 0 and not np.isnan(mean_squared):
+                            rms = np.sqrt(mean_squared)
+                        else:
+                            rms = 0
+                    else:
+                        rms = 0
                     
                     # 增强灵敏度：使用对数缩放 + 放大系数
                     if rms > 0:
